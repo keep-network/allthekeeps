@@ -59,7 +59,7 @@ function AppInternal() {
 
   let url: string;
   if (isRopsten) {
-    url = 'api.thegraph.com/subgraphs/name/miracle2k/all-the-keeps-ropsten';
+    url = (process.env.REACT_APP_SUBGRAPH_API as string);
   }
   else {
     // DEV:
@@ -143,7 +143,8 @@ function AppInternal() {
 }
 
 function App() {
-  const network = (window.location.host.indexOf("ropsten") > -1) ? Network.ROPSTEN : Network.MAINNET;
+  // url for atk on ropsten: https://allthekeeps.test.keep.network
+  const network = (window.location.host.indexOf("test") > -1) ? Network.ROPSTEN : Network.MAINNET;
   return <SetNetwork network={network}>
     <AppInternal />
   </SetNetwork>
