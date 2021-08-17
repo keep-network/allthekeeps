@@ -1,0 +1,115 @@
+name: Allthekeeps / Testnet
+
+on:
+  push:
+    branches:
+     - allthekeeps-on-ropsten
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment for workflow execution'
+        required: false
+        default: 'dev'
+      upstream_builds:
+        description: 'Upstream builds'
+        required: false
+      upstream_ref:
+        description: 'Git reference to checkout (e.g. branch name)'
+        required: false
+        default: 'main'
+
+jobs:
+  dapp-detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      path-filter: ${{ steps.filter.outputs.path-filter }}
+    steps:
+      - uses: actions/checkout@v2
+        if: github.event_name == 'pull_request'
+        with:
+          ref: allthekeeps-on-ropsten
+  
+  dapp-build-and-publish:
+    needs: dapp-detect-changes
+    if: |
+      github.event_name != 'pull_request'
+        || needs.dapp-detect-changes.outputs.path-filter == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: allthekeeps-on-ropsten
+
+      - name: Load environment variables
+        uses: keep-network/ci/actions/load-env-variables@v1
+        with:
+          environment: 'ropsten'
+      
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "12.x"
+
+      - name: Run install repositories
+        run: ./install-repositories.sh
+      
+      - name: Get upstream packages' versions
+        if: github.event_name == 'workflow_dispatch'
+        uses: keep-network/ci/actions/upstream-builds-query@v1
+        id: upstream-builds-query
+        with:
+          upstream-builds: ${{ github.event.inputs.upstream_builds }}
+          query: |
+            keep-core-contracts-version = github.com/keep-network/keep-core/solidity#version
+            keep-ecdsa-contracts-version = github.com/keep-network/keep-ecdsa/solidity#version
+            tbtc-contracts-version = github.com/keep-network/tbtc/solidity#version
+
+      - name: Deploy subgraph to thegraph.com
+        if: github.event_name != 'workflow_dispatch'
+        working-directory: ./keep-subgraph
+        run: |
+          CONTRACT_OWNER_ETH_ACCOUNT_PRIVATE_KEY=${{secrets.CONTRACT_OWNER_ETH_ACCOUNT_PRIVATE_KEY}} \
+          ETH_RPC_URL=${{secrets.ETH_RPC_URL}} \
+          SUBGRAPH_DEPLOY_KEY=${{secrets.SUBGRAPH_DEPLOY_KEY}} \
+          SUBGRAPH_SLUG=${{secrets.SUBGRAPH_SLUG}} ./deploy-subgraph.sh
+
+      - name: Deploy latest subgraph to thegraph.com
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: ./keep-subgraph
+        run: | 
+          CONTRACT_OWNER_ETH_ACCOUNT_PRIVATE_KEY=${{ secrets.CONTRACT_OWNER_ETH_ACCOUNT_PRIVATE_KEY }} \
+          ETH_RPC_URL=${{ secrets.ETH_RPC_URL }} \ 
+          SUBGRAPH_DEPLOY_KEY=${{ secrets.SUBGRAPH_DEPLOY_KEY }} \ 
+          SUBGRAPH_SLUG=${{ secrets.SUBGRAPH_SLUG }} \ 
+          KEEP_CORE_VERSION=${{ steps.upstream-builds-query.outputs.keep-core-contracts-version }} \
+          KEEP_ECDSA_VERSION=${{ steps.upstream-builds-query.outputs.keep-ecdsa-contracts-version }} \
+          KEEP_TBTC_VERSION=${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }} \
+            ./deploy-subgraph.sh
+
+      - name: YARN build
+        run: ./install-dapp.sh
+
+      - name: Deploy to GCP bucket
+        if: github.event_name == 'workflow_dispatch'
+        uses: thesis/gcp-storage-bucket-action@v3.1.0
+        with:
+          service-key: ${{ secrets.KEEP_TEST_CI_UPLOAD_DAPP_JSON_KEY_BASE64 }}
+          project: ${{ env.GOOGLE_PROJECT_ID }}
+          bucket-name: allthekeeps.test.keep.network
+          set-website: true
+          home-page-path: index.html
+          error-page-path: index.html
+          build-folder: build
+
+      - name: Notify CI about completion of the workflow
+        if: github.event_name == 'workflow_dispatch'
+        uses: keep-network/ci/actions/notify-workflow-completed@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
+        with:
+          module: "https://github.com/keep-network/allthekeeps"
+          url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          environment: ${{ github.event.inputs.environment }}
+          upstream_builds: ${{ github.event.inputs.upstream_builds }}
+          upstream_ref: ${{ github.event.inputs.upstream_ref }}
+          version: ${{ github.sha }}
