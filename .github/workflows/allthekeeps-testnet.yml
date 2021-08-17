@@ -20,21 +20,8 @@ on:
         default: 'main'
 
 jobs:
-  dapp-detect-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      path-filter: ${{ steps.filter.outputs.path-filter }}
-    steps:
-      - uses: actions/checkout@v2
-        if: github.event_name == 'pull_request'
-        with:
-          ref: allthekeeps-on-ropsten
-  
   dapp-build-and-publish:
-    needs: dapp-detect-changes
-    if: |
-      github.event_name != 'pull_request'
-        || needs.dapp-detect-changes.outputs.path-filter == 'true'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -53,7 +40,7 @@ jobs:
       - name: Run install repositories
         run: ./install-repositories.sh
       
-      - name: Get upstream packages' versions
+      - name: Get upstream packages versions
         if: github.event_name == 'workflow_dispatch'
         uses: keep-network/ci/actions/upstream-builds-query@v1
         id: upstream-builds-query
@@ -71,7 +58,8 @@ jobs:
           CONTRACT_OWNER_ETH_ACCOUNT_PRIVATE_KEY=${{secrets.CONTRACT_OWNER_ETH_ACCOUNT_PRIVATE_KEY}} \
           ETH_RPC_URL=${{secrets.ETH_RPC_URL}} \
           SUBGRAPH_DEPLOY_KEY=${{secrets.SUBGRAPH_DEPLOY_KEY}} \
-          SUBGRAPH_SLUG=${{secrets.SUBGRAPH_SLUG}} ./deploy-subgraph.sh
+          SUBGRAPH_SLUG=${{secrets.SUBGRAPH_SLUG}} \
+            ./deploy-subgraph.sh
 
       - name: Deploy latest subgraph to thegraph.com
         if: github.event_name == 'workflow_dispatch'
