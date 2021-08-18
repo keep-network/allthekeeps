@@ -30,7 +30,7 @@ jobs:
       - name: Load environment variables
         uses: keep-network/ci/actions/load-env-variables@v1
         with:
-          environment: 'ropsten'
+          environment: ${{ github.event.inputs.environment }}
       
       - uses: actions/setup-node@v2
         with:
