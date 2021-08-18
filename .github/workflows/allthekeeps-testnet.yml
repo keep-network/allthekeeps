@@ -20,7 +20,7 @@ on:
         default: 'main'
 
 jobs:
-  dapp-build-and-publish:
+  build-and-publish:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -36,10 +36,21 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: "12.x"
+          cache: "yarn"
 
       - name: Run install repositories
         run: ./install-repositories.sh
       
+      - name: Deploy subgraph to thegraph.com
+        if: github.event_name != 'workflow_dispatch'
+        working-directory: ./keep-subgraph
+        run: |
+          CONTRACT_OWNER_ETH_ACCOUNT_PRIVATE_KEY=${{secrets.CONTRACT_OWNER_ETH_ACCOUNT_PRIVATE_KEY}} \
+          ETH_RPC_URL=${{secrets.ETH_RPC_URL}} \
+          SUBGRAPH_DEPLOY_KEY=${{secrets.SUBGRAPH_DEPLOY_KEY}} \
+          SUBGRAPH_SLUG=${{secrets.SUBGRAPH_SLUG}} \
+            ./deploy-subgraph.sh
+
       - name: Get upstream packages versions
         if: github.event_name == 'workflow_dispatch'
         uses: keep-network/ci/actions/upstream-builds-query@v1
@@ -50,16 +61,6 @@ jobs:
             keep-core-contracts-version = github.com/keep-network/keep-core/solidity#version
             keep-ecdsa-contracts-version = github.com/keep-network/keep-ecdsa/solidity#version
             tbtc-contracts-version = github.com/keep-network/tbtc/solidity#version
-
-      - name: Deploy subgraph to thegraph.com
-        if: github.event_name != 'workflow_dispatch'
-        working-directory: ./keep-subgraph
-        run: |
-          CONTRACT_OWNER_ETH_ACCOUNT_PRIVATE_KEY=${{secrets.CONTRACT_OWNER_ETH_ACCOUNT_PRIVATE_KEY}} \
-          ETH_RPC_URL=${{secrets.ETH_RPC_URL}} \
-          SUBGRAPH_DEPLOY_KEY=${{secrets.SUBGRAPH_DEPLOY_KEY}} \
-          SUBGRAPH_SLUG=${{secrets.SUBGRAPH_SLUG}} \
-            ./deploy-subgraph.sh
 
       - name: Deploy latest subgraph to thegraph.com
         if: github.event_name == 'workflow_dispatch'
@@ -95,7 +96,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
         with:
-          module: "https://github.com/keep-network/allthekeeps"
+          module: "github.com/keep-network/allthekeeps"
           url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           environment: ${{ github.event.inputs.environment }}
           upstream_builds: ${{ github.event.inputs.upstream_builds }}
