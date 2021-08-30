@@ -48,15 +48,15 @@ jobs:
 
       - name: Deploy latest subgraph to thegraph.com
         working-directory: ./keep-subgraph
-        run: | 
-          CONTRACT_OWNER_ETH_ACCOUNT_PRIVATE_KEY=${{ secrets.CONTRACT_OWNER_ETH_ACCOUNT_PRIVATE_KEY }} \
-          ETH_RPC_URL=${{ secrets.ETH_RPC_URL }} \ 
-          SUBGRAPH_DEPLOY_KEY=${{ secrets.SUBGRAPH_DEPLOY_KEY }} \ 
-          SUBGRAPH_SLUG=${{ secrets.SUBGRAPH_SLUG }} \ 
-          KEEP_CORE_VERSION=${{ steps.upstream-builds-query.outputs.keep-core-contracts-version }} \
-          KEEP_ECDSA_VERSION=${{ steps.upstream-builds-query.outputs.keep-ecdsa-contracts-version }} \
-          KEEP_TBTC_VERSION=${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }} \
-            ./deploy-subgraph.sh
+        env:
+          CONTRACT_OWNER_ETH_ACCOUNT_PRIVATE_KEY: ${{ secrets.CONTRACT_OWNER_ETH_ACCOUNT_PRIVATE_KEY }}
+          ETH_RPC_URL: ${{ secrets.ETH_RPC_URL }}
+          SUBGRAPH_DEPLOY_KEY: ${{ secrets.SUBGRAPH_DEPLOY_KEY }}
+          SUBGRAPH_SLUG: ${{ secrets.SUBGRAPH_SLUG }}
+          KEEP_CORE_VERSION: ${{ steps.upstream-builds-query.outputs.keep-core-contracts-version }}
+          KEEP_ECDSA_VERSION: ${{ steps.upstream-builds-query.outputs.keep-ecdsa-contracts-version }}
+          KEEP_TBTC_VERSION: ${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }}
+        run: ./deploy-subgraph.sh
 
       - name: YARN build
         run: ./install-dapp.sh
