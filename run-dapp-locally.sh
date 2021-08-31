@@ -15,17 +15,19 @@ printf "${LOG_START}Reading subgraph API..${LOG_END}"
 
 cd keep-subgraph
 
-API_TO_PARSE=$(head -n 1 subgraph_api)
-echo Fetched api: ${API_TO_PARSE}
+SUBGRAPH_API=$(head -n 1 subgraph_api)
+echo Fetched api: ${SUBGRAPH_API}
 
 printf "${LOG_START}Building dApp...${LOG_END}"
 
 cd ${WORKDIR}
 
-CI=false REACT_APP_SUBGRAPH_API=${API_TO_PARSE} yarn craco build
+CI=false REACT_APP_SUBGRAPH_API=${SUBGRAPH_API} yarn craco build
 
 printf "${LOG_START}Starting dApp...${LOG_END}"
 
 cd ${WORKDIR}
 
-REACT_APP_SUBGRAPH_API=${API_TO_PARSE} yarn start
+echo API ${SUBGRAPH_API}
+
+REACT_APP_SUBGRAPH_API=${SUBGRAPH_API} yarn start
