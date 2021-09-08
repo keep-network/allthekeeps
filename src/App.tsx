@@ -143,8 +143,8 @@ function AppInternal() {
 }
 
 function App() {
-  // url for atk on ropsten: https://allthekeeps.test.keep.network
-  const network = (window.location.host.indexOf("test") > -1) ? Network.ROPSTEN : Network.MAINNET;
+  const network = (process.env.NETWORK as string) === "mainnet" ? Network.MAINNET : Network.ROPSTEN;  
+
   return <SetNetwork network={network}>
     <AppInternal />
   </SetNetwork>
