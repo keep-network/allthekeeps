@@ -1,4 +1,4 @@
-allthekeeps
+AllTheKeeps on Ropsten
 -----------
 
-Keep Network & tBTC explorer, live at [allthekeeps.com](https://allthekeeps.com).
+Keep Network & tBTC explorer on Ropsten, live at [https://allthekeeps.test.keep.network](https://allthekeeps.test.keep.network).
